@@ -1,0 +1,252 @@
+format_version: '2'
+name: My Project
+board:
+  identifier: CustomBoard
+  device: ATmega2560-16AU
+details: null
+application: null
+middlewares: {}
+drivers:
+  CPU:
+    user_label: CPU
+    definition: 'Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::CPU::driver_config_definition::SYSCTRL::Drivers:SYSCTRL:'
+    functionality: System
+    api: 'Drivers:SYSCTRL:'
+    configuration:
+      async_input_speed: 32768
+      clkadc_oscillator: Input clock
+      clkasy_oscillator: Async input clock
+      clkcpu_oscillator: Input clock
+      clkio_oscillator: Input clock
+      clkptc_oscillator: Input clock
+      cpu_clock_source: CLKcpu
+      enable_async_input: true
+      enable_clkadc: true
+      enable_clkasy: true
+      enable_clkcpu: true
+      enable_clkio: true
+      enable_clkptc: true
+      enable_core_clock: true
+      enable_input: true
+      input_speed: 16000000
+      pm_ivsel: Interrupt vector placed at the beginning of main FLASH memory
+      pm_pud: false
+      pm_se: false
+      pm_sm: Idle
+      prescaler_divider: '1'
+    optional_signals: []
+    variant: null
+    clocks:
+      domain_group:
+        nodes:
+        - name: Core
+          input: Core
+        configuration: {}
+  USART_0:
+    user_label: USART_0
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::USART0::driver_config_definition::Async.IRQ.Mode::Drivers:USART:Basic
+    functionality: USART
+    api: Drivers:USART:Basic
+    configuration:
+      driver_rx_buffer_size: '8'
+      driver_tx_buffer_size: '8'
+      printf_support: false
+      usart_baud_rate: 9600
+      usart_mpcm: false
+      usart_rxcie: true
+      usart_rxen: true
+      usart_txen: true
+      usart_ucpha: Sample data on the first edge of XCK
+      usart_ucpol: false
+      usart_ucsz: 8-bit
+      usart_udord: LSB is transmitted first
+      usart_udrie: false
+      usart_upm: Disabled
+      usart_usbs: 1-bit
+    optional_signals: []
+    variant:
+      specification: UMSEL=0
+      required_signals:
+      - name: USART0/RXD
+        pad: PE0
+        label: RXD
+      - name: USART0/TXD
+        pad: PE1
+        label: TXD
+    clocks:
+      domain_group:
+        nodes:
+        - name: USART
+          input: CLKio
+        configuration:
+          usart_clock_source: CLKio
+  USART_1:
+    user_label: USART_1
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::USART1::driver_config_definition::Async.IRQ.Mode::Drivers:USART:Basic
+    functionality: USART
+    api: Drivers:USART:Basic
+    configuration:
+      driver_rx_buffer_size: '8'
+      driver_tx_buffer_size: '8'
+      printf_support: false
+      usart_baud_rate: 9600
+      usart_mpcm: false
+      usart_rxcie: true
+      usart_rxen: true
+      usart_txen: true
+      usart_ucpha: Sample data on the first edge of XCK
+      usart_ucpol: false
+      usart_ucsz: 8-bit
+      usart_udord: LSB is transmitted first
+      usart_udrie: false
+      usart_upm: Disabled
+      usart_usbs: 1-bit
+    optional_signals: []
+    variant:
+      specification: UMSEL=0
+      required_signals:
+      - name: USART1/RXD
+        pad: PD2
+        label: RXD
+      - name: USART1/TXD
+        pad: PD3
+        label: TXD
+    clocks:
+      domain_group:
+        nodes:
+        - name: USART
+          input: CLKio
+        configuration:
+          usart_clock_source: CLKio
+  USART_2:
+    user_label: USART_2
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::USART2::driver_config_definition::Async.IRQ.Mode::Drivers:USART:Basic
+    functionality: USART
+    api: Drivers:USART:Basic
+    configuration:
+      driver_rx_buffer_size: '64'
+      driver_tx_buffer_size: '8'
+      printf_support: false
+      usart_baud_rate: 9600
+      usart_mpcm: false
+      usart_rxcie: true
+      usart_rxen: true
+      usart_txen: true
+      usart_ucpha: Sample data on the first edge of XCK
+      usart_ucpol: false
+      usart_ucsz: 8-bit
+      usart_udord: LSB is transmitted first
+      usart_udrie: false
+      usart_upm: Disabled
+      usart_usbs: 1-bit
+    optional_signals: []
+    variant:
+      specification: UMSEL=0
+      required_signals:
+      - name: USART2/RXD
+        pad: PH0
+        label: RXD
+      - name: USART2/TXD
+        pad: PH1
+        label: TXD
+    clocks:
+      domain_group:
+        nodes:
+        - name: USART
+          input: CLKio
+        configuration:
+          usart_clock_source: CLKio
+  USART_3:
+    user_label: USART_3
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::USART3::driver_config_definition::Async.IRQ.Mode::Drivers:USART:Basic
+    functionality: USART
+    api: Drivers:USART:Basic
+    configuration:
+      driver_rx_buffer_size: '8'
+      driver_tx_buffer_size: '8'
+      printf_support: true
+      usart_baud_rate: 9600
+      usart_mpcm: false
+      usart_rxcie: true
+      usart_rxen: true
+      usart_txen: true
+      usart_ucpha: Sample data on the first edge of XCK
+      usart_ucpol: false
+      usart_ucsz: 8-bit
+      usart_udord: LSB is transmitted first
+      usart_udrie: false
+      usart_upm: Disabled
+      usart_usbs: 1-bit
+    optional_signals: []
+    variant:
+      specification: UMSEL=0
+      required_signals:
+      - name: USART3/RXD
+        pad: PJ0
+        label: RXD
+      - name: USART3/TXD
+        pad: PJ1
+        label: TXD
+    clocks:
+      domain_group:
+        nodes:
+        - name: USART
+          input: CLKio
+        configuration:
+          usart_clock_source: CLKio
+pads:
+  PE0:
+    name: PE0
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::pad::PE0
+    mode: Digital input
+    user_label: PE0
+    configuration: null
+  PE1:
+    name: PE1
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::pad::PE1
+    mode: Digital output
+    user_label: PE1
+    configuration: null
+  PH0:
+    name: PH0
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::pad::PH0
+    mode: Digital input
+    user_label: PH0
+    configuration: null
+  PH1:
+    name: PH1
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::pad::PH1
+    mode: Digital output
+    user_label: PH1
+    configuration: null
+  Led:
+    name: PB7
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::pad::PB7
+    mode: Digital output
+    user_label: Led
+    configuration: null
+  PD2:
+    name: PD2
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::pad::PD2
+    mode: Digital input
+    user_label: PD2
+    configuration: null
+  PD3:
+    name: PD3
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::pad::PD3
+    mode: Digital output
+    user_label: PD3
+    configuration: null
+  PJ0:
+    name: PJ0
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::pad::PJ0
+    mode: Digital input
+    user_label: PJ0
+    configuration: null
+  PJ1:
+    name: PJ1
+    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::pad::PJ1
+    mode: Digital output
+    user_label: PJ1
+    configuration: null
+toolchain_options: []

@@ -1,5 +1,6 @@
 // Arduino Mega pass-thru loader for Nextion LCD
 // V0.1	8th Sept 2017 JRW
+// Now under revision control, committed 8/9/2017
 
 #include <atmel_start.h>
 #include <avr/pgmspace.h>

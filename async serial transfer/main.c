@@ -115,7 +115,7 @@ int findlcd()
 	}
 	return(-1);
 }
-/* I am a main function */
+
 int main(void)
 {
 	uint8_t data;

@@ -54,14 +54,10 @@ int findlcd()
 	int inindex = 0;
 	int wtim = 0;
 
-	for(i=0; i<sizeof(lcdsig); i++)
-	{
-		lcdsig[i] = 0;			// clear the rx bufffer
-	}
-	for(i=0; i<sizeof(response); i++)
-	{
-		response[i] = 0;			// clear the response bufffer
-	}
+	// clear arrays
+	memset(lcdsig, 0, sizeof lcdsig);
+	memset(response, 0, sizeof response);
+
 
 	for(bindex=0; bindex<sizeof(btable); bindex++)		// try every baud
 	{
@@ -116,6 +112,8 @@ int findlcd()
 			}
 		}
 	}
+	// test
+	lcdsig[0]=128;
 	return(-1);
 }
 

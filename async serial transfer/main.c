@@ -80,7 +80,6 @@ int findlcd(void)
 	memset(lcdsig, 0, sizeof lcdsig);
 	memset(response, 0, sizeof response);
 
-
 	for(bindex=0; bindex<sizeof(btable); bindex++)		// try every baud
 	{
 		inindex = 0;
@@ -223,7 +222,7 @@ int conntoed()
 	while(lcdsig[i])
 	{
 		USART_0_write(lcdsig[i]);
-		//		USART_3_write(lcdsig[i++]);
+		USART_3_write(lcdsig[i++]);
 	}
 	return(0);
 }

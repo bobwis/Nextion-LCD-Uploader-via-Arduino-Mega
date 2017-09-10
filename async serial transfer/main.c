@@ -10,6 +10,7 @@
 #include <util/delay.h>
 #include <stdio.h>
 #include <string.h>
+#include <atomic.h>
 
 #define LCDPORT USART_2
 
@@ -20,7 +21,7 @@ static char lcdsig[80];			// holds the returned LCD signature string
 const uint8_t string[12] PROGMEM = {"hello world!"};
 
 // baud rates corresponding to the clock settings below
-const uint64_t bauds[7]={
+const uint32_t bauds[7]={
 	2400,115200,4800,57600,9600,38400,19200
 };
 
@@ -37,6 +38,8 @@ const uint16_t btable[7][2]={
 	{51,103}	// 19200
 };
 
+
+
 #if 0
 void delay_ms(uint16_t count) {
 	while(count--) {
@@ -46,7 +49,7 @@ void delay_ms(uint16_t count) {
 #else
 void delay_ms(uint16_t count)
 {
-volatile uint64_t k,j;
+	volatile uint64_t k,j;
 	while(1) {
 		cli();
 		j = msectimer0;
@@ -64,6 +67,66 @@ volatile uint64_t k,j;
 	}
 }
 #endif
+
+// set the baud on the fly for usart 0; this makes sure uart is idle
+void set0baud(int baudindex) {
+
+	//Check UART tx Data has been completed
+	while (!(UCSR0A & (1 <<UDRE0)))			// 	while (!(UCSR0A & (1 <<TXC0)))
+	;
+	ENTER_CRITICAL(W);
+	while (!(UCSR0A & (1 <<UDRE0)))		// make sure no sneaky isr got in
+	;
+	// deactivate USART
+	UCSR0B = 0 << RXCIE0    /* RX Complete Interrupt Enable: enabled */
+	| 0 << UDRIE0  /* USART Data Register Empty Interupt Enable: disabled */
+	| 0 << RXEN0   /* Receiver Enable: enabled */
+	| 0 << TXEN0   /* Transmitter Enable: enabled */
+	| 0 << UCSZ02; /*  */
+	
+	//Reconfigure baud rate
+	UBRR0H = (btable[baudindex][BMULT] >> 8);
+	UBRR0L = (btable[baudindex][BMULT] & 0xff);
+
+	// activate USART
+	UCSR0B = 1 << RXCIE0    /* RX Complete Interrupt Enable: enabled */
+	| 0 << UDRIE0  /* USART Data Register Empty Interupt Enable: disabled */
+	| 1 << RXEN0   /* Receiver Enable: enabled */
+	| 1 << TXEN0   /* Transmitter Enable: enabled */
+	| 0 << UCSZ02; /*  */
+
+	EXIT_CRITICAL(W);
+}
+
+// set the baud on the fly for usart 2; this makes sure uart is idle
+void set2baud(int baudindex) {
+
+	//Check UART tx Data has been completed
+	while (!(UCSR2A & (1 <<UDRE2)))			// 	while (!(UCSR2A & (1 <<TXC2)))	
+		;
+	ENTER_CRITICAL(W);
+	while (!(UCSR2A & (1 <<UDRE2)))		// make sure no sneaky isr got in
+		;
+	// deactivate USART
+	UCSR2B = 0 << RXCIE2    /* RX Complete Interrupt Enable: enabled */
+	| 0 << UDRIE2  /* USART Data Register Empty Interupt Enable: disabled */
+	| 0 << RXEN2   /* Receiver Enable: enabled */
+	| 0 << TXEN2   /* Transmitter Enable: enabled */
+	| 0 << UCSZ22; /*  */
+	
+	//Reconfigure baud rate
+	UBRR2H = (btable[baudindex][BMULT] >> 8);
+	UBRR2L = (btable[baudindex][BMULT] & 0xff);
+
+	// activate USART
+	UCSR2B = 1 << RXCIE2    /* RX Complete Interrupt Enable: enabled */
+	| 0 << UDRIE2  /* USART Data Register Empty Interupt Enable: disabled */
+	| 1 << RXEN2   /* Receiver Enable: enabled */
+	| 1 << TXEN2   /* Transmitter Enable: enabled */
+	| 0 << UCSZ22; /*  */
+
+	EXIT_CRITICAL(W);
+}
 
 // Find the LCD and return the current baud rate or -1 if not found
 int findlcd(void)
@@ -83,9 +146,9 @@ int findlcd(void)
 	for(bindex=0; bindex<sizeof(btable); bindex++)		// try every baud
 	{
 		inindex = 0;
-		UBRR2H = (btable[bindex][BMULT] >> 8);
-		UBRR2L = (btable[bindex][BMULT] & 0xff);
-		delay_ms(10);			// allow baud gen to settle
+		set2baud(bindex);			// set the LCD baud rate
+
+		delay_ms(2);			// allow baud gen to settle
 
 		for(j=0; j<sizeof(discovermsg)-1; j++)		// send discovery command to LCD
 		{
@@ -157,12 +220,11 @@ int getconnect(char buf[], int bsize)
 {
 	int inindex = 0, mindex = 0;
 	int wtim, i;
-	volatile char ch;
-	//	volatile char buf[128];
+	char ch;
 	const char discovermsg[]="connect\xff\xff\xff";		// expected discovery message
 
 	for(i=0; i<bsize; buf[i++]='\0');
-	for (wtim = 0; (wtim < 5000); wtim++)		// hang around waiting for some input
+	for (wtim = 0; (wtim < 7000); wtim++)		// hang around waiting for some input
 	{
 		while(USART_0_is_rx_ready())
 		{
@@ -173,15 +235,15 @@ int getconnect(char buf[], int bsize)
 				if (discovermsg[mindex] == ch)
 				{
 					mindex++;
-					if (mindex == sizeof(discovermsg))	// all matched
+					if (mindex == sizeof(discovermsg)-1)	// all matched
 					{
-						ch = i & 0xff;
-						return(1);
+						return(0);
 					}
 				}
 				else
 				{
 					mindex = 0;		// reset the search
+					inindex = 0;
 				}
 			}
 			else
@@ -199,10 +261,10 @@ int getconnect(char buf[], int bsize)
 // wait for connect from Nextion Editor and respond
 int conntoed()
 {
-	volatile int i;
-	char ch;
+	int i;
 	char inbuf[128];
 	const char nulresp[]={0x1a,0xff,0xff,0xff};
+
 
 	i = getconnect(inbuf,sizeof(inbuf));
 	if (i < 0)
@@ -210,120 +272,150 @@ int conntoed()
 		return(-1);
 	}
 	// Pc has connected, now send LCD signature response
-
-
-	for(i=0; i<4; i++)
+	for(i=0; i<4; i++)		// send error response - might not be needed
 	{
 		USART_0_write(nulresp[i]);
-		USART_3_write(nulresp[i]);
 	}
-
 	i = 0;
 	while(lcdsig[i])
 	{
-		USART_0_write(lcdsig[i]);
-		USART_3_write(lcdsig[i++]);
+		USART_0_write(lcdsig[i++]);		// send the saved LCD response to the Editor
 	}
 	return(0);
 }
 
 
-// wait for and parse the baud rate from the upload command
-int getupcmd(char* buf, int bsize)
+// wait for and parse the baud rate from the 'upload' command
+// return the new baud rate or -1 if not found
+long getupcmd(void)
 {
-	int inindex = 0, mindex = 0;
-	int wtim, i, termcnt;
+	int mindex = 0;
+	int wtim, termcnt = 0, commacnt = 0;
+	volatile long newbaud = 0;
 	char ch;
 	bool validcmd = false;
 
 	const char uploadmsg[]="whmi-wri ";		// expected upload command
 
-	for(i=0; i<bsize; buf[i++]='\0');
-	termcnt = 0;
 	for (wtim = 0; (wtim < 5000); wtim++)		// hang around waiting for some input
 	{
 		while(USART_0_is_rx_ready())
 		{
-			if(inindex < bsize)		// check not overflowed our buffer
-			{
-				ch = USART_0_read();
-				buf[inindex++] = ch;
-				if (!(validcmd)) {
-					if (uploadmsg[mindex] == ch)			// compare this char
+			ch = USART_0_read();
+			USART_2_write(ch);	// copy to the LCD
+			if (!(validcmd)) {
+				if (uploadmsg[mindex] == ch)			// compare this char with upload cmd string
+				{
+					//						USART_3_write(ch);
+					mindex++;
+					if (mindex == sizeof(uploadmsg)-1)	// all matched
 					{
-						USART_3_write(ch);
-						mindex++;
-						if (mindex == sizeof(uploadmsg))	// all matched
-						{
-							validcmd = true;
-						}
-					}
-					else
-					{
-						inindex = 0;	// no need to keep that input
-						mindex = 0;		// reset the search
+						validcmd = true;
+						commacnt = 0;
+						termcnt = 0;
+						newbaud = 0;
 					}
 				}
 				else
 				{
-					// valid upload command - we need to get the params and find the end
-					if (ch == 0xff)
-					{
-						termcnt++;
-						if (termcnt == 3)
-						{
-							return(0);
-						}
-					}
+					//						inindex = 0;	// no need to keep that input
+					mindex = 0;		// reset the search
 				}
 			}
 			else
 			{
-				// input buffer full
-				inindex = 0;
-				validcmd = false;
-				termcnt = 0;
-				for(i=0; i<bsize; buf[i++]='\0');
+				// valid upload command seen - we need to get the params and find the end
+				if (ch == 0xff)
+				{
+					termcnt++;
+					if (termcnt == 3)
+					{
+						return(newbaud);
+					}
+				}
+				if (ch == ',')		// comma between parameters
+				{
+					commacnt++;
+				}
+				if (commacnt == 1)
+				{
+					if ((ch >= '0') && (ch <= '9'))
+					{
+						newbaud *= 10;
+						newbaud = newbaud + ch - '0';
+					}
+				}
+
 			}
+		}
+		while(USART_2_is_rx_ready())
+		{
+			ch = USART_2_read();
+			USART_0_write(ch);	// copy to the PC
 		}
 		delay_ms(1);
 	}
-	return(-1);
+	return((newbaud > 0) ? newbaud : -1L);
 }
 
 // wait for upload command from Nextion Editor and send it to the LCD
-// then change the baud rates
+// then change the baud rates and perform the transfer
 int doupload()
 {
-	int i;
-	char ch;
-	char inbuf[128];
-	unsigned long filesize, baudrate;
-	char cmd[16];
+	register char ch;
+	unsigned long baudrate;
+	int bindex;
 
-	i = getupcmd(inbuf,sizeof(inbuf));
-	if (i < 0)
+	baudrate = getupcmd();
+	if (baudrate < 0)
 	{
 		return(-1);
 	}
 	// Pc has sent upload command
-	sscanf(inbuf,"%s,%ld,%ld",cmd,&filesize,&baudrate);
+	printf("Got Upload cmd %ld\n\r",baudrate);
 
-	i = (int)baudrate;
-	i = i + (int)filesize;
+
+// set the specified baudrate
+		for(bindex=0; bindex<7; bindex++)
+		{
+			if (bauds[bindex] == baudrate)
+			{
+				break; 
+			}
+		}
+
+		set0baud(bindex);			// set the PC baud rate 
+		set2baud(bindex);			// set the LCD baud rate 
+
+	for(;;)
+	{
+		
+		if (USART_0_is_rx_ready())
+		{
+			ch = USART_0_read();
+			USART_2_write(ch);	// copy to the LCD
+		}
+		if (USART_0_is_rx_ready())			// do this twice to increase throughput
+		{
+			ch = USART_0_read();
+			USART_2_write(ch);	// copy to the LCD
+		}
+		while(USART_2_is_rx_ready())
+		{
+			ch = USART_2_read();
+			USART_0_write(ch);	// copy to the PC
+		}
+	}
 	return(0);
 }
 
 
 int main(void)
 {
-	uint8_t data;
-	unsigned int bps, ledcnt = 0;
+	unsigned int ledcnt = 0;
 	volatile int i;
-	volatile unsigned int j, k;
 
 	char hellomsg[]="Hello\r\n";
-
 
 	/* Initializes MCU, drivers and middleware */
 	atmel_start_init();
@@ -347,20 +439,25 @@ int main(void)
 			printf("Finding LCD\n\r");
 			i = findlcd();
 		}
-//		printf("Found LCD at bindex %d, %s\n\r",i,lcdsig);
+		//		printf("Found LCD at bindex %d, %s\n\r",i,lcdsig);
 		printf("Found LCD\n\r");
 		i = -1;
 		while( i < 0)
 		{
 			printf("Waiting for Nextion Editor to connect\n\r");
 			i = conntoed();
+			if (i >=0)
+			{
+
+				printf("Nextion Editor connected\n\r");
+			}
 		}
 
 
+		printf("Waiting for upload cmd\n\r");
 		doupload();
 
-
-		ledcnt = lcdsig[0];
+		ledcnt = 0x4000;
 		if(ledcnt)
 		{
 			ledcnt--;

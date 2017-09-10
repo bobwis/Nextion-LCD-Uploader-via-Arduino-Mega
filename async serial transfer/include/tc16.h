@@ -70,13 +70,6 @@ extern "C" {
  */
 int8_t TIMER_0_init();
 
-/**
- * \brief Initialize TIMER_1 interface
- *
- * \return Initialization status.
- */
-int8_t TIMER_1_init();
-
 #ifdef __cplusplus
 }
 #endif

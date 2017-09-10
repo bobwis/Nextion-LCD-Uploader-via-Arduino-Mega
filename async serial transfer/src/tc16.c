@@ -75,35 +75,3 @@ int8_t TIMER_0_init()
 
 	return 0;
 }
-
-/**
- * \brief Initialize TIMER_1 interface
- */
-int8_t TIMER_1_init()
-{
-
-	/* Enable TC3 */
-	PRR1 &= ~(1 << PRTIM3);
-
-	// TCCR3A = (0 << COM3A1) | (0 << COM3A0) /* Normal port operation, OCA disconnected */
-	//		 | (0 << COM3B1) | (0 << COM3B0) /* Normal port operation, OCB disconnected */
-	//		 | (0 << WGM31) | (0 << WGM30); /* TC16 Mode 0 Normal */
-
-	TCCR3B = (0 << WGM33) | (0 << WGM32)                /* TC16 Mode 0 Normal */
-	         | 0 << ICNC3                               /* Input Capture Noise Canceler: disabled */
-	         | 0 << ICES3                               /* Input Capture Edge Select: disabled */
-	         | (0 << CS32) | (0 << CS31) | (1 << CS30); /* No prescaling */
-
-	// ICR3 = 0; /* Input capture value, used as top counter value in some modes: 0 */
-
-	OCR3A = 16000; /* Output compare A: 16000 */
-
-	// OCR3B = 0; /* Output compare B: 0 */
-
-	TIMSK3 = 0 << OCIE3B   /* Output Compare B Match Interrupt Enable: disabled */
-	         | 1 << OCIE3A /* Output Compare A Match Interrupt Enable: enabled */
-	         | 0 << ICIE3  /* Input Capture Interrupt Enable: disabled */
-	         | 0 << TOIE3; /* Overflow Interrupt Enable: disabled */
-
-	return 0;
-}

@@ -22,7 +22,7 @@ driver_isr.d driver_isr.o: .././driver_isr.c ../include/driver_init.h \
  ../include/sysctrl.h ../include/protected_io.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\sleep.h \
  ../include/tc16.h ../include/usart_basic.h ../atmel_start.h \
- ../include/driver_init.h ../include/atmel_start_pins.h ../utils/utils.h
+ ../include/driver_init.h ../include/atmel_start_pins.h
 
 ../include/driver_init.h:
 
@@ -85,5 +85,3 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\
 ../include/driver_init.h:
 
 ../include/atmel_start_pins.h:
-
-../utils/utils.h:

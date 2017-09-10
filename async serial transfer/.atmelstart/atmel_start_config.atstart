@@ -70,34 +70,6 @@ drivers:
           input: CLKio
         configuration:
           tc16_clock_source: CLKio
-  TIMER_1:
-    user_label: TIMER_1
-    definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::TC3::driver_config_definition::TC16.Mode.0.Normal::Drivers:TC16:Init
-    functionality: Timer
-    api: Drivers:TC16:Init
-    configuration:
-      inc_isr_harness: true
-      tc16_coma: Normal port operation, OCA disconnected
-      tc16_comb: Normal port operation, OCB disconnected
-      tc16_cs: No prescaling
-      tc16_ices: Falling edge will trigger input capture
-      tc16_icie: false
-      tc16_icnc: false
-      tc16_icr: 0
-      tc16_ociea: true
-      tc16_ocieb: false
-      tc16_orca: 16000
-      tc16_orcb: 0
-      tc16_toie: false
-    optional_signals: []
-    variant: null
-    clocks:
-      domain_group:
-        nodes:
-        - name: TC16
-          input: CLKio
-        configuration:
-          tc16_clock_source: CLKio
   USART_0:
     user_label: USART_0
     definition: Atmel:ATMega640_1280_2560_drivers:1.0.0::ATmega2560-16AU::USART0::driver_config_definition::Async.IRQ.Mode::Drivers:USART:Basic
@@ -105,7 +77,7 @@ drivers:
     api: Drivers:USART:Basic
     configuration:
       driver_rx_buffer_size: '128'
-      driver_tx_buffer_size: '16'
+      driver_tx_buffer_size: '32'
       printf_support: false
       usart_baud_rate: 9600
       usart_mpcm: false
@@ -181,7 +153,7 @@ drivers:
     api: Drivers:USART:Basic
     configuration:
       driver_rx_buffer_size: '64'
-      driver_tx_buffer_size: '8'
+      driver_tx_buffer_size: '32'
       printf_support: false
       usart_baud_rate: 9600
       usart_mpcm: false

@@ -38,8 +38,6 @@ const uint16_t btable[7][2]={
 	{51,103}	// 19200
 };
 
-
-
 #if 0
 void delay_ms(uint16_t count) {
 	while(count--) {
@@ -102,11 +100,11 @@ void set0baud(int baudindex) {
 void set2baud(int baudindex) {
 
 	//Check UART tx Data has been completed
-	while (!(UCSR2A & (1 <<UDRE2)))			// 	while (!(UCSR2A & (1 <<TXC2)))	
-		;
+	while (!(UCSR2A & (1 <<UDRE2)))			// 	while (!(UCSR2A & (1 <<TXC2)))
+	;
 	ENTER_CRITICAL(W);
 	while (!(UCSR2A & (1 <<UDRE2)))		// make sure no sneaky isr got in
-		;
+	;
 	// deactivate USART
 	UCSR2B = 0 << RXCIE2    /* RX Complete Interrupt Enable: enabled */
 	| 0 << UDRIE2  /* USART Data Register Empty Interupt Enable: disabled */
@@ -147,7 +145,6 @@ int findlcd(void)
 	{
 		inindex = 0;
 		set2baud(bindex);			// set the LCD baud rate
-
 		delay_ms(2);			// allow baud gen to settle
 
 		for(j=0; j<sizeof(discovermsg)-1; j++)		// send discovery command to LCD
@@ -171,7 +168,7 @@ int findlcd(void)
 					response[inindex++] = USART_2_read();
 				}
 			}
-			delay_ms(1);			// allow one char time at 2400 baud, 5ms is 64 chars at 115200
+			delay_ms(1);			// allow one char time at 9600 baud
 		}
 
 		if (inindex)		// we *have* received something
@@ -194,7 +191,7 @@ int findlcd(void)
 								int k;
 								j = 0;
 								k = i + 3 - rindex;
-								//		the expression evals wrong??			while (j < (i+3-rindex))
+								//		this expression evals wrong- compiler??			while (j < (i+3-rindex))
 								while (j < k)
 								{
 									lcdsig[j++] = response[rindex++];		// copy response string into global
@@ -365,45 +362,66 @@ int doupload()
 	register char ch;
 	unsigned long baudrate;
 	int bindex;
+	uint8_t active;
+	uint64_t now;
 
 	baudrate = getupcmd();
-	if (baudrate < 0)
+	if ((long)baudrate < 0)
 	{
 		return(-1);
 	}
 	// Pc has sent upload command
-	printf("Got Upload cmd %ld\n\r",baudrate);
+	printf("Starting Upload@ %ld\n\r",baudrate);
 
-
-// set the specified baudrate
-		for(bindex=0; bindex<7; bindex++)
+	// set the specified baudrate
+	for(bindex=0; bindex<7; bindex++)
+	{
+		if (bauds[bindex] == baudrate)
 		{
-			if (bauds[bindex] == baudrate)
-			{
-				break; 
-			}
+			break;
 		}
+	}
 
-		set0baud(bindex);			// set the PC baud rate 
-		set2baud(bindex);			// set the LCD baud rate 
+	set0baud(bindex);			// set the PC baud rate
+	set2baud(bindex);			// set the LCD baud rate
 
+	active = 0;
 	for(;;)
 	{
-		
 		if (USART_0_is_rx_ready())
 		{
+			active = 0;
 			ch = USART_0_read();
 			USART_2_write(ch);	// copy to the LCD
 		}
-		if (USART_0_is_rx_ready())			// do this twice to increase throughput
+		else
 		{
+			active++;
+		}
+		while (USART_0_is_rx_ready())	// slurp
+		{
+			active++;
 			ch = USART_0_read();
 			USART_2_write(ch);	// copy to the LCD
 		}
-		while(USART_2_is_rx_ready())
+		if(USART_2_is_rx_ready())
 		{
 			ch = USART_2_read();
 			USART_0_write(ch);	// copy to the PC
+		}
+		if (active != 0)		// nothing coming in from PC?
+		{
+			now = msectimer0;
+		}
+		else
+		{
+			if (active == 255)
+			{
+				if (msectimer0 > now + 5000)
+				{
+					break;
+				}
+			}
 		}
 	}
 	return(0);
@@ -414,6 +432,7 @@ int main(void)
 {
 	unsigned int ledcnt = 0;
 	volatile int i;
+	int initialbaud;
 
 	char hellomsg[]="Hello\r\n";
 
@@ -439,6 +458,7 @@ int main(void)
 			printf("Finding LCD\n\r");
 			i = findlcd();
 		}
+		initialbaud = i;
 		//		printf("Found LCD at bindex %d, %s\n\r",i,lcdsig);
 		printf("Found LCD\n\r");
 		i = -1;
@@ -448,14 +468,18 @@ int main(void)
 			i = conntoed();
 			if (i >=0)
 			{
-
 				printf("Nextion Editor connected\n\r");
 			}
 		}
 
-
 		printf("Waiting for upload cmd\n\r");
 		doupload();
+
+		set0baud(initialbaud);			// set the PC baud rate
+		set2baud(initialbaud);			// set the LCD baud rate
+
+		
+		printf("Upload timed out, finished?\n\r");
 
 		ledcnt = 0x4000;
 		if(ledcnt)

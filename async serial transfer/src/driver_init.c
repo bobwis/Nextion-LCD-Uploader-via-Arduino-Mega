@@ -60,12 +60,6 @@ void TIMER_0_initialization(void)
 	TIMER_0_init();
 }
 
-void TIMER_1_initialization(void)
-{
-
-	TIMER_1_init();
-}
-
 /* configure pins and initialize registers */
 void USART_0_initialization(void)
 {
@@ -193,8 +187,6 @@ void system_init()
 	sysctrl_init();
 
 	TIMER_0_initialization();
-
-	TIMER_1_initialization();
 
 	USART_0_initialization();
 

@@ -206,8 +206,6 @@ int findlcd(void)
 			}
 		}
 	}
-	// test
-	lcdsig[0]=128;
 	return(-1);
 }
 

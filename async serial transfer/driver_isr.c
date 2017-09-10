@@ -53,8 +53,6 @@
 
 #include <driver_init.h>
 #include <compiler.h>
-#include <tc16.h>
-#include <utils.h>
 
 volatile uint64_t msectimer0 = 0;
 

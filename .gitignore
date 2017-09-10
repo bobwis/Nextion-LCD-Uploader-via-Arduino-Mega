@@ -1,3 +1,6 @@
 
+async serial transfer/Debug/
 *.atzip
+*.d
 .vs/async serial transfer/v14/.atsuo
+*.elf

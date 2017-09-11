@@ -75,16 +75,31 @@ void set0baud(int baudindex) {
 	ENTER_CRITICAL(W);
 	while (!(UCSR0A & (1 <<UDRE0)))		// make sure no sneaky isr got in
 	;
+
+	if (baudindex == 1)		// 115200
+
+
 	// deactivate USART
 	UCSR0B = 0 << RXCIE0    /* RX Complete Interrupt Enable: enabled */
 	| 0 << UDRIE0  /* USART Data Register Empty Interupt Enable: disabled */
 	| 0 << RXEN0   /* Receiver Enable: enabled */
 	| 0 << TXEN0   /* Transmitter Enable: enabled */
 	| 0 << UCSZ02; /*  */
-	
-	//Reconfigure baud rate
-	UBRR0H = (btable[baudindex][BMULT] >> 8);
-	UBRR0L = (btable[baudindex][BMULT] & 0xff);
+
+	if (baudindex == 1)		// 115200
+	{
+		UCSR0A |= (1 << U2X0);
+		//Reconfigure baud rate
+		UBRR0H = (btable[baudindex][1] >> 8);
+		UBRR0L = (btable[baudindex][1] & 0xff);
+	}
+	else
+	{
+		UCSR0A &= ~(1 << U2X0);
+		//Reconfigure baud rate
+		UBRR0H = (btable[baudindex][BMULT] >> 8);
+		UBRR0L = (btable[baudindex][BMULT] & 0xff);
+	}
 
 	// activate USART
 	UCSR0B = 1 << RXCIE0    /* RX Complete Interrupt Enable: enabled */
@@ -359,6 +374,7 @@ int doupload()
 	register char ch;
 	unsigned long baudrate;
 	int bindex;
+	volatile long bcount;
 	register uint8_t active, started;
 	uint64_t now;
 
@@ -386,6 +402,7 @@ int doupload()
 
 	active = 0;
 	started = 0;
+	bcount = 0;
 	now = msectimer0;
 	for(;;)
 	{
@@ -395,19 +412,19 @@ int doupload()
 			started = 1;
 			ch = USART_0_read();
 			USART_2_write(ch);	// copy to the LCD
+			bcount++;
 		}
-
+#if 0
 		while (USART_0_is_rx_ready())	// slurp
 		{
 			ch = USART_0_read();
 			USART_2_write(ch);	// copy to the LCD
 		}
-
+#endif
 		if(USART_2_is_rx_ready())
 		{
 			ch = USART_2_read();
 			USART_0_write(ch);	// copy to the PC
-//			USART_3_write(ch);	// copy to the debug
 		}
 		if (active++ == 0)		// once every 256 loops with no uart0 rx
 		{
@@ -418,6 +435,7 @@ int doupload()
 			now = msectimer0;
 		}
 	}
+	bindex = bcount;
 	return((started) ? 0 : -1);
 }
 
@@ -458,14 +476,14 @@ int main(void)
 		{
 			printf("Waiting for Nextion Editor to connect\n\r");
 			i = conntoed();
-			if (i >=0)
+			if (i >= 0)
 			{
 				printf("Nextion Editor connected\n\r");
 			}
 		}
 
 		printf("Waiting for upload cmd\n\r");
-		if (doupload() < 0)			// did not recieve the upload command
+		if (doupload() < 0)			// did not receive the upload command
 		{
 			continue;
 		}

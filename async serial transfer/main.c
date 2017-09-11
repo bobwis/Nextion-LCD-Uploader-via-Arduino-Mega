@@ -191,7 +191,6 @@ int findlcd(void)
 								int k;
 								j = 0;
 								k = i + 3 - rindex;
-								//		this expression evals wrong- compiler??			while (j < (i+3-rindex))
 								while (j < k)
 								{
 									lcdsig[j++] = response[rindex++];		// copy response string into global
@@ -360,7 +359,7 @@ int doupload()
 	register char ch;
 	unsigned long baudrate;
 	int bindex;
-	uint8_t active;
+	register uint8_t active, started;
 	uint64_t now;
 
 	baudrate = getupcmd();
@@ -369,60 +368,57 @@ int doupload()
 		return(-1);
 	}
 	// Pc has sent upload command
-	printf("Starting Upload@ %ld\n\r",baudrate);
+	printf("Starting Upload @ %ld\n\r",baudrate);
 
 	// set the specified baudrate
-	for(bindex=0; bindex<7; bindex++)
+	bindex = 0;
+	while(bindex < 7)
 	{
 		if (bauds[bindex] == baudrate)
 		{
 			break;
 		}
+		bindex++;
 	}
 
 	set0baud(bindex);			// set the PC baud rate
 	set2baud(bindex);			// set the LCD baud rate
 
 	active = 0;
+	started = 0;
+	now = msectimer0;
 	for(;;)
 	{
 		if (USART_0_is_rx_ready())
 		{
-			active = 0;
+			active = 1;
+			started = 1;
 			ch = USART_0_read();
 			USART_2_write(ch);	// copy to the LCD
 		}
-		else
-		{
-			active++;
-		}
+
 		while (USART_0_is_rx_ready())	// slurp
 		{
-			active++;
 			ch = USART_0_read();
 			USART_2_write(ch);	// copy to the LCD
 		}
+
 		if(USART_2_is_rx_ready())
 		{
 			ch = USART_2_read();
 			USART_0_write(ch);	// copy to the PC
+//			USART_3_write(ch);	// copy to the debug
 		}
-		if (active != 0)		// nothing coming in from PC?
+		if (active++ == 0)		// once every 256 loops with no uart0 rx
 		{
+			if (msectimer0 > now+5000L)
+			{
+				break;
+			}
 			now = msectimer0;
 		}
-		else
-		{
-			if (active == 255)
-			{
-				if (msectimer0 > now + 5000)
-				{
-					break;
-				}
-			}
-		}
 	}
-	return(0);
+	return((started) ? 0 : -1);
 }
 
 
@@ -440,7 +436,6 @@ int main(void)
 	/* Replace with your application code */
 	sei();
 
-
 	for(i=0; i<sizeof(hellomsg)-1; i++)
 	{
 		USART_3_write(hellomsg[i]);
@@ -448,7 +443,6 @@ int main(void)
 
 	while (1)
 	{
-
 		ledcnt = 1;
 		i = -1;
 		while (i < 1)
@@ -471,11 +465,13 @@ int main(void)
 		}
 
 		printf("Waiting for upload cmd\n\r");
-		doupload();
+		if (doupload() < 0)			// did not recieve the upload command
+		{
+			continue;
+		}
 
-		set0baud(initialbaud);			// set the PC baud rate
-		set2baud(initialbaud);			// set the LCD baud rate
-
+		set0baud(initialbaud);			// reset the PC baud rate
+		set2baud(initialbaud);			// reset the LCD baud rate
 		
 		printf("Upload timed out, finished?\n\r");
 
@@ -490,5 +486,4 @@ int main(void)
 			Led_set_level(0);
 		}
 	}
-
 }

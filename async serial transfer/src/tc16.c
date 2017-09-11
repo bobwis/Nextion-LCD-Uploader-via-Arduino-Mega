@@ -45,33 +45,33 @@
 #include <utils.h>
 
 /**
- * \brief Initialize TIMER_0 interface
+ * \brief Initialize TIMER_3 interface
  */
-int8_t TIMER_0_init()
+int8_t TIMER_3_init()
 {
 
-	/* Enable TC1 */
-	PRR0 &= ~(1 << PRTIM1);
+	/* Enable TC5 */
+	PRR1 &= ~(1 << PRTIM5);
 
-	// TCCR1A = (0 << COM1A1) | (0 << COM1A0) /* Normal port operation, OCA disconnected */
-	//		 | (0 << COM1B1) | (0 << COM1B0) /* Normal port operation, OCB disconnected */
-	//		 | (0 << WGM11) | (0 << WGM10); /* TC16 Mode 0 Normal */
+	// TCCR5A = (0 << COM5A1) | (0 << COM5A0) /* Normal port operation, OCA disconnected */
+	//		 | (0 << COM5B1) | (0 << COM5B0) /* Normal port operation, OCB disconnected */
+	//		 | (0 << WGM51) | (0 << WGM50); /* TC16 Mode 0 Normal */
 
-	TCCR1B = (0 << WGM13) | (0 << WGM12)                /* TC16 Mode 0 Normal */
-	         | 0 << ICNC1                               /* Input Capture Noise Canceler: disabled */
-	         | 0 << ICES1                               /* Input Capture Edge Select: disabled */
-	         | (0 << CS12) | (0 << CS11) | (1 << CS10); /* No prescaling */
+	TCCR5B = (0 << WGM53) | (0 << WGM52)                /* TC16 Mode 0 Normal */
+	         | 0 << ICNC5                               /* Input Capture Noise Canceler: disabled */
+	         | 0 << ICES5                               /* Input Capture Edge Select: disabled */
+	         | (0 << CS52) | (0 << CS51) | (1 << CS50); /* No prescaling */
 
-	// ICR1 = 0; /* Input capture value, used as top counter value in some modes: 0 */
+	// ICR5 = 0; /* Input capture value, used as top counter value in some modes: 0 */
 
-	OCR1A = 16000; /* Output compare A: 16000 */
+	OCR5A = 16000; /* Output compare A: 16000 */
 
-	OCR1B = 16000; /* Output compare B: 16000 */
+	// OCR5B = 0; /* Output compare B: 0 */
 
-	TIMSK1 = 0 << OCIE1B   /* Output Compare B Match Interrupt Enable: disabled */
-	         | 1 << OCIE1A /* Output Compare A Match Interrupt Enable: enabled */
-	         | 0 << ICIE1  /* Input Capture Interrupt Enable: disabled */
-	         | 0 << TOIE1; /* Overflow Interrupt Enable: disabled */
+	TIMSK5 = 0 << OCIE5B   /* Output Compare B Match Interrupt Enable: disabled */
+	         | 1 << OCIE5A /* Output Compare A Match Interrupt Enable: enabled */
+	         | 0 << ICIE5  /* Input Capture Interrupt Enable: disabled */
+	         | 0 << TOIE5; /* Overflow Interrupt Enable: disabled */
 
 	return 0;
 }

@@ -64,11 +64,11 @@ extern "C" {
 #endif
 
 /**
- * \brief Initialize TIMER_0 interface
+ * \brief Initialize TIMER_3 interface
  *
  * \return Initialization status.
  */
-int8_t TIMER_0_init();
+int8_t TIMER_3_init();
 
 #ifdef __cplusplus
 }

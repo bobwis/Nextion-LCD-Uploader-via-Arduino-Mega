@@ -54,10 +54,10 @@
 #include "driver_init.h"
 #include <system.h>
 
-void TIMER_0_initialization(void)
+void TIMER_3_initialization(void)
 {
 
-	TIMER_0_init();
+	TIMER_3_init();
 }
 
 /* configure pins and initialize registers */
@@ -186,7 +186,7 @@ void system_init()
 
 	sysctrl_init();
 
-	TIMER_0_initialization();
+	TIMER_3_initialization();
 
 	USART_0_initialization();
 

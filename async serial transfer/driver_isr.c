@@ -54,15 +54,15 @@
 #include <driver_init.h>
 #include <compiler.h>
 
-volatile uint64_t msectimer0 = 0;
+volatile uint64_t msectimer0 = 0;		// global 1mS tick count
 
-ISR(TIMER1_COMPA_vect)
+ISR(TIMER5_COMPA_vect)
 {
+	/* Insert your TIMER_3 compare channel A interrupt handling code here */
 	static uint16_t nextcmp = 0;
 
 	nextcmp = nextcmp + 16000;
 	OCR1AH = nextcmp >> 8 ;
 	OCR1AL = nextcmp & 0xff;
 	msectimer0++;
-	/* Insert your TIMER_0 compare channel A interrupt handling code here */
 }

@@ -414,13 +414,13 @@ int doupload()
 			USART_2_write(ch);	// copy to the LCD
 			bcount++;
 		}
-#if 0
+		#if 0
 		while (USART_0_is_rx_ready())	// slurp
 		{
 			ch = USART_0_read();
 			USART_2_write(ch);	// copy to the LCD
 		}
-#endif
+		#endif
 		if(USART_2_is_rx_ready())
 		{
 			ch = USART_2_read();

@@ -2,7 +2,9 @@
 // V0.1	8th Sept 2017 JRW
 // Now under revision control, committed 8/9/2017
 
-// Second change
+// Pc/Nexton Editor on USART0
+// Nextion LCD on USART2
+// Debug output on USART3
 
 #include <atmel_start.h>
 #include <avr/pgmspace.h>
@@ -12,13 +14,9 @@
 #include <string.h>
 #include <atomic.h>
 
-#define LCDPORT USART_2
-
 extern volatile uint64_t msectimer0;
 
 static char lcdsig[80];			// holds the returned LCD signature string
-
-const uint8_t string[12] PROGMEM = {"hello world!"};
 
 // baud rates corresponding to the clock settings below
 const uint32_t bauds[7]={
@@ -39,25 +37,26 @@ const uint16_t btable[7][2]={
 	{51,103}	// 19200
 };
 
-#if 0
-void delay_ms(uint16_t count) {
-	while(count--) {
-		_delay_ms(1);
-	}
+
+inline uint64_t msectime(void)
+{
+uint64_t currentms;
+	ENTER_CRITICAL(W);
+	currentms = msectimer0;
+	EXIT_CRITICAL(W);
+	return(currentms);
 }
-#else
+
+// Uses Hardware timer 5 which is set to 1mS interrupt
+// delay will be 0 < 1mSec for parameter of 1, 1mS < 2mS for parameter of 2 etc 
 void delay_ms(uint16_t count)
 {
 	volatile uint64_t k,j;
 	while(1) {
-		cli();
-		j = msectimer0;
-		sei();
+		j = msectime();
 		k = j + (uint64_t)count;
 		while(1) {
-			cli();
-			j = msectimer0;
-			sei();
+			j = msectime();
 			if (j >= k)
 			{
 				return;
@@ -65,7 +64,6 @@ void delay_ms(uint16_t count)
 		}
 	}
 }
-#endif
 
 // set the baud on the fly for usart 0; this tries to makes sure uart is idle
 void set0baud(int baudindex) {
@@ -412,7 +410,7 @@ int doupload()
 	set2baud(bindex);			// set the LCD baud rate
 
 	started = 0;
-	now = msectimer0;
+	now = msectime();
 
 	for(;;)
 	{
@@ -420,7 +418,7 @@ int doupload()
 		{
 			ch = USART_0_read();
 			USART_2_write(ch);	// copy to the LCD
-			now = msectimer0;
+			now = msectime();
 			started = 1;
 		}
 
@@ -430,7 +428,8 @@ int doupload()
 			USART_0_write(ch);	// copy to the PC
 		}
 
-		if(msectimer0 > (uint64_t)5000 + now) {
+		if(msectime() > (uint64_t)5000 + now) 
+		{
 			break;
 		}
 	}
@@ -440,11 +439,8 @@ int doupload()
 
 int main(void)
 {
-	unsigned int ledcnt = 0;
 	volatile int i;
-	int initialbaud;
-
-	char hellomsg[]="Hello\r\n";
+	int baudindex;
 
 	/* Initializes MCU, drivers and middleware */
 	atmel_start_init();
@@ -452,23 +448,16 @@ int main(void)
 	/* Replace with your application code */
 	sei();
 
-	for(i=0; i<sizeof(hellomsg)-1; i++)
-	{
-		USART_3_write(hellomsg[i]);
-	}
-
 	while (1)
 	{
-		ledcnt = 1;
-		i = -1;
-		while (i < 1)
+		baudindex = -1;
+		while (baudindex < 1)
 		{
 			printf("Finding LCD\n\r");
-			i = findlcd();
+			baudindex = findlcd();
 		}
-		initialbaud = i;
-		//		printf("Found LCD at bindex %d, %s\n\r",i,lcdsig);
-		printf("Found LCD\n\r");
+
+		printf("Found LCD @ %ld\n\r",bauds[baudindex]);
 
 		i = -1;
 		while( i < 0)
@@ -491,21 +480,9 @@ int main(void)
 			}
 		}
 
-		set0baud(initialbaud);			// reset the PC baud rate
-		set2baud(initialbaud);			// reset the LCD baud rate
+		set0baud(baudindex);			// reset the PC baud rate
+		set2baud(baudindex);			// reset the LCD baud rate
 		
 		printf("Upload timed out, finished?\n\r");
-		#if 0
-		ledcnt = 0x4000;
-		if(ledcnt)
-		{
-			ledcnt--;
-			Led_set_level(1);
-		}
-		else
-		{
-			Led_set_level(0);
-		}
-		#endif
 	}
 }

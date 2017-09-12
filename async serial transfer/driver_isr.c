@@ -61,7 +61,7 @@ ISR(TIMER5_COMPA_vect)
 	/* Insert your TIMER_5 compare channel A interrupt handling code here */
 	static uint16_t nextcmp = 0;
 
-	nextcmp = nextcmp + 16000;
+	nextcmp = nextcmp + 16000;		// 1mSec assuming 16MHz clock
 	OCR5AH = nextcmp >> 8 ;
 	OCR5AL = nextcmp & 0xff;
 	msectimer0++;

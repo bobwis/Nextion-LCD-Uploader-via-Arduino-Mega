@@ -58,11 +58,11 @@ volatile uint64_t msectimer0 = 0;		// global 1mS tick count
 
 ISR(TIMER5_COMPA_vect)
 {
-	/* Insert your TIMER_3 compare channel A interrupt handling code here */
+	/* Insert your TIMER_5 compare channel A interrupt handling code here */
 	static uint16_t nextcmp = 0;
 
 	nextcmp = nextcmp + 16000;
-	OCR1AH = nextcmp >> 8 ;
-	OCR1AL = nextcmp & 0xff;
+	OCR5AH = nextcmp >> 8 ;
+	OCR5AL = nextcmp & 0xff;
 	msectimer0++;
 }

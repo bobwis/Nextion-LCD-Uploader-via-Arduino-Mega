@@ -27,7 +27,8 @@ const uint32_t bauds[7]={
 
 // baud rate clock settings from 2400 to 115200
 // column for clock multiplier used 1 or 2
-#define BMULT 0		// column
+#define B1MULT 0		// 1x UART speed column
+#define B2MULT 1		// 2z UART speed column
 const uint16_t btable[7][2]={
 	{416,832},	// 2400
 	{8,16},		// 115.2k
@@ -66,7 +67,7 @@ void delay_ms(uint16_t count)
 }
 #endif
 
-// set the baud on the fly for usart 0; this makes sure uart is idle
+// set the baud on the fly for usart 0; this tries to makes sure uart is idle
 void set0baud(int baudindex) {
 
 	//Check UART tx Data has been completed
@@ -90,15 +91,15 @@ void set0baud(int baudindex) {
 	{
 		UCSR0A |= (1 << U2X0);
 		//Reconfigure baud rate
-		UBRR0H = (btable[baudindex][1] >> 8);
-		UBRR0L = (btable[baudindex][1] & 0xff);
+		UBRR0H = (btable[baudindex][B2MULT] >> 8);
+		UBRR0L = (btable[baudindex][B2MULT] & 0xff);
 	}
 	else
 	{
 		UCSR0A &= ~(1 << U2X0);
 		//Reconfigure baud rate
-		UBRR0H = (btable[baudindex][BMULT] >> 8);
-		UBRR0L = (btable[baudindex][BMULT] & 0xff);
+		UBRR0H = (btable[baudindex][B1MULT] >> 8);
+		UBRR0L = (btable[baudindex][B1MULT] & 0xff);
 	}
 
 	// activate USART
@@ -111,7 +112,7 @@ void set0baud(int baudindex) {
 	EXIT_CRITICAL(W);
 }
 
-// set the baud on the fly for usart 2; this makes sure uart is idle
+// set the baud on the fly for usart 2; this tries to makes sure uart is idle
 void set2baud(int baudindex) {
 
 	//Check UART tx Data has been completed
@@ -126,10 +127,21 @@ void set2baud(int baudindex) {
 	| 0 << RXEN2   /* Receiver Enable: enabled */
 	| 0 << TXEN2   /* Transmitter Enable: enabled */
 	| 0 << UCSZ22; /*  */
-	
-	//Reconfigure baud rate
-	UBRR2H = (btable[baudindex][BMULT] >> 8);
-	UBRR2L = (btable[baudindex][BMULT] & 0xff);
+
+	if (baudindex == 1)		// 115200
+	{
+		UCSR2A |= (1 << U2X0);
+		//Reconfigure baud rate
+		UBRR2H = (btable[baudindex][B2MULT] >> 8);
+		UBRR2L = (btable[baudindex][B2MULT] & 0xff);
+	}
+	else
+	{
+		UCSR2A &= ~(1 << U2X0);
+		//Reconfigure baud rate
+		UBRR2H = (btable[baudindex][B1MULT] >> 8);
+		UBRR2L = (btable[baudindex][B1MULT] & 0xff);
+	}
 
 	// activate USART
 	UCSR2B = 1 << RXCIE2    /* RX Complete Interrupt Enable: enabled */
@@ -373,12 +385,11 @@ int doupload()
 {
 	register char ch;
 	unsigned long baudrate;
-	int bindex;
-	volatile long bcount;
-	register uint8_t active, started;
-	uint64_t now;
+	unsigned int bindex;
+	register uint8_t started;
+	register uint64_t now;
 
-	baudrate = getupcmd();
+	baudrate = getupcmd();		// wait for and parse upload command from PC
 	if ((long)baudrate < 0)
 	{
 		return(-1);
@@ -400,42 +411,29 @@ int doupload()
 	set0baud(bindex);			// set the PC baud rate
 	set2baud(bindex);			// set the LCD baud rate
 
-	active = 0;
 	started = 0;
-	bcount = 0;
 	now = msectimer0;
+
 	for(;;)
 	{
 		if (USART_0_is_rx_ready())
 		{
-			active = 1;
+			ch = USART_0_read();
+			USART_2_write(ch);	// copy to the LCD
+			now = msectimer0;
 			started = 1;
-			ch = USART_0_read();
-			USART_2_write(ch);	// copy to the LCD
-			bcount++;
 		}
-		#if 0
-		while (USART_0_is_rx_ready())	// slurp
-		{
-			ch = USART_0_read();
-			USART_2_write(ch);	// copy to the LCD
-		}
-		#endif
+
 		if(USART_2_is_rx_ready())
 		{
 			ch = USART_2_read();
 			USART_0_write(ch);	// copy to the PC
 		}
-		if (active++ == 0)		// once every 256 loops with no uart0 rx
-		{
-			if (msectimer0 > now+5000L)
-			{
-				break;
-			}
-			now = msectimer0;
+
+		if(msectimer0 > (uint64_t)5000 + now) {
+			break;
 		}
 	}
-	bindex = bcount;
 	return((started) ? 0 : -1);
 }
 
@@ -471,10 +469,11 @@ int main(void)
 		initialbaud = i;
 		//		printf("Found LCD at bindex %d, %s\n\r",i,lcdsig);
 		printf("Found LCD\n\r");
+
 		i = -1;
 		while( i < 0)
 		{
-			printf("Waiting for Nextion Editor to connect\n\r");
+			printf("Waiting for Nextion Editor\n\r");
 			i = conntoed();
 			if (i >= 0)
 			{
@@ -483,16 +482,20 @@ int main(void)
 		}
 
 		printf("Waiting for upload cmd\n\r");
-		if (doupload() < 0)			// did not receive the upload command
+		i = 0;
+		while (doupload() < 0)			// did not receive the upload command
 		{
-			continue;
+			if(++i == 5)			// timeout waiting for upload
+			{
+				break;
+			}
 		}
 
 		set0baud(initialbaud);			// reset the PC baud rate
 		set2baud(initialbaud);			// reset the LCD baud rate
 		
 		printf("Upload timed out, finished?\n\r");
-
+		#if 0
 		ledcnt = 0x4000;
 		if(ledcnt)
 		{
@@ -503,5 +506,6 @@ int main(void)
 		{
 			Led_set_level(0);
 		}
+		#endif
 	}
 }
